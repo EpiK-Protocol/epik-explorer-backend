@@ -1,0 +1,73 @@
+@HOST=https://explorer.epik-protocol.io/api
+@token=
+
+#EPIK测试网活动报名
+POST {{HOST}}/testnet/signup
+Content-Type: application/json
+
+{
+    "weixin":"",
+    "epik_address":"",
+    "erc20_address":"",
+    "epik_signature":"",
+    "erc20_signature":""
+}
+###
+
+#EPIK测试网状态
+GET {{HOST}}/testnet/home?address=
+Content-Type: application/json
+###
+
+#EPIK用户收益
+GET {{HOST}}/testnet/profit?id=aabbccdd
+Content-Type: application/json
+###
+
+#EPIK钱包币种报价
+GET {{HOST}}/wallet/price
+Content-Type: application/json
+###
+
+#ADMIN Login
+POST {{HOST}}/admin/login
+Content-Type: application/json
+{
+    "user_name":"",
+    "password":""
+}
+###
+
+#ADMIN Regist
+POST {{HOST}}/admin/regist
+Content-Type: application/json
+token: {{token}}
+{
+    "user_name":"",
+    "password":""
+}
+###
+
+#ADMIN Miner List
+GET {{HOST}}/admin/miner/list?page=1&size=10&offset=10
+Content-Type: application/json
+token: {{token}}
+###
+
+#ADMIN Miner Confirm
+POST {{HOST}}/admin/miner/comfirm
+Content-Type: application/json
+token: {{token}}
+{
+    "miner_id":""
+}
+###
+
+#ADMIN Miner Reject
+POST {{HOST}}/admin/miner/reject
+Content-Type: application/json
+token: {{token}}
+{
+    "miner_id":""
+}
+###
