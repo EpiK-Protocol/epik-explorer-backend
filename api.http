@@ -71,3 +71,27 @@ token: {{token}}
     "miner_id":""
 }
 ###
+
+#ADMIN 收益发放列表
+GET {{HOST}}/admin/profit/list?page=1&size=10&offset=10
+Content-Type: application/json
+token: {{token}}
+###
+
+#ADMIN 删除收益记录
+POST {{HOST}}/admin/profit/delete
+Content-Type: application/json
+token: {{token}}
+{
+    "record_id":1
+}
+###
+
+#ADMIN 完成收益发放
+POST {{HOST}}/admin/profit/done
+Content-Type: application/json
+token: {{token}}
+{
+    "record_id":1
+}
+###

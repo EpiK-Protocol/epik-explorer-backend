@@ -3,9 +3,12 @@ package epik
 import (
 	"context"
 	"encoding/json"
-	"epik-explorer-backend/storage"
-	"epik-explorer-backend/utils"
+	"fmt"
 	"time"
+
+	"github.com/EpiK-Protocol/epik-explorer-backend/etc"
+	"github.com/EpiK-Protocol/epik-explorer-backend/storage"
+	"github.com/EpiK-Protocol/epik-explorer-backend/utils"
 
 	"github.com/EpiK-Protocol/go-epik/api"
 	"github.com/EpiK-Protocol/go-epik/chain/types"
@@ -248,21 +251,23 @@ func LoadData() {
 	})
 }
 
-var nodeURL = "ws://120.55.82.202:1234/rpc/v0"
-
 //StartFetch ...
 func StartFetch() {
-
 	go func() {
-		client, err := NewClient(nodeURL, "")
-		minute := time.NewTimer(time.Minute)
-		minute10 := time.NewTimer(time.Minute * 10)
+
+		minute := time.NewTicker(time.Minute)
+		minute10 := time.NewTicker(time.Minute * 10)
+	Reconnect:
+		fmt.Println("reconnecting")
+		client, err := NewClient(etc.Config.EPIK.RPCHost, etc.Config.EPIK.RPCToken)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			goto Reconnect
 		}
 		notify, err := client.FullNodeAPI.ChainNotify(context.Background())
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			goto Reconnect
 		}
 		var latestTipSet *types.TipSet
 		for {
@@ -275,6 +280,9 @@ func StartFetch() {
 						blockMessages, err := client.FullNodeAPI.ChainGetBlockMessages(context.Background(), block.Cid())
 						if err == nil {
 							updateBaseInfoWithBlockMessages(blockMessages)
+						} else {
+							fmt.Println(err)
+							goto Reconnect
 						}
 					}
 				}
@@ -283,6 +291,9 @@ func StartFetch() {
 					pledge, err := client.FullNodeAPI.StatePledgeCollateral(context.Background(), latestTipSet.Key())
 					if err == nil {
 						updateBaseInfoWithPledgeCollateral(pledge)
+					} else {
+						fmt.Println(err)
+						goto Reconnect
 					}
 
 				}
@@ -296,6 +307,9 @@ func StartFetch() {
 						power, err := client.FullNodeAPI.StateMinerPower(context.Background(), addr, latestTipSet.Key())
 						if err == nil {
 							powerG.Power += power.MinerPower.QualityAdjPower.Int64()
+						} else {
+							fmt.Println(err)
+							goto Reconnect
 						}
 					}
 				}

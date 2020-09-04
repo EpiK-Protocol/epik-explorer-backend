@@ -27,5 +27,5 @@ func NewClient(url string, token string) (c *Client, err error) {
 		Token: token,
 	}
 	c.FullNodeAPI, c.fullNodeCloser, err = client.NewFullNodeRPC(url, nil)
-	return c, nil
+	return c, err
 }

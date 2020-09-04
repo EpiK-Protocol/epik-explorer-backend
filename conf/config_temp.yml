@@ -1,0 +1,26 @@
+server:
+    mode: debug
+    name: epik-explorer
+    http_port: 3002
+    log_dir: ./log
+
+postgres:
+    host: 127.0.0.1
+    port: 5432
+    user: postgres
+    password: 
+    database: epik-explorer
+
+badgerdb:
+    tipset: ./db/tipset
+    power: ./db/power
+    message: ./db/message
+    testnet: ./db/testnet
+    wallet: ./db/wallet
+    token: ./db/token
+
+epik_erc20:
+    rpc_host:
+    main_privatekey: 
+    daily_bonus: 50000
+

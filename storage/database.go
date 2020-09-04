@@ -1,25 +1,33 @@
 package storage
 
 import (
+	"fmt"
 	"time"
 
-	"epik-explorer-backend/utils"
+	"github.com/EpiK-Protocol/epik-explorer-backend/etc"
 
 	"github.com/dgraph-io/badger/v2"
 	"github.com/dgraph-io/badger/v2/options"
 
-	_ "github.com/jinzhu/gorm/dialects/postgres" //postgresql driver
+	"gorm.io/driver/postgres" //postgresql driver
+	"gorm.io/gorm"
 )
 
 var (
 	//DB mysql
-	// DB *gorm.DB
+	DB *gorm.DB
 	//TipsetKV tokens
 	TipsetKV *badger.DB
 	//PowerKV vcode
 	PowerKV *badger.DB
 	//MessageKV vcode
 	MessageKV *badger.DB
+	//TestNetKV ...
+	TestNetKV *badger.DB
+	//WalletKV ...
+	WalletKV *badger.DB
+	//TokenKV tokens
+	TokenKV *badger.DB
 )
 
 //RunMode debug
@@ -28,24 +36,27 @@ var RunMode = "debug"
 //InitDatabase ...
 func InitDatabase() {
 	var err error
-	// source := fmt.Sprintf("sslmode=disable host=%s port=%s user=%s dbname=%s password='%s'",
-	// 	utils.ReadConfig("pg.host"),
-	// 	utils.ReadConfig("pg.port"),
-	// 	utils.ReadConfig("pg.user"),
-	// 	utils.ReadConfig("pg.dbname"),
-	// 	utils.ReadConfig("pg.password"),
-	// )
+	source := fmt.Sprintf("sslmode=disable host=%s port=%d user=%s dbname=%s password='%s'",
+		etc.Config.Postgres.Host,
+		etc.Config.Postgres.Port,
+		etc.Config.Postgres.User,
+		etc.Config.Postgres.Database,
+		etc.Config.Postgres.Password,
+	)
 
-	// DB, err = gorm.Open("postgres", source)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// DB.DB().SetMaxIdleConns(5)
-	// DB.DB().SetMaxOpenConns(20)
-	// err = DB.DB().Ping()
-	// if err != nil {
-	// 	panic(err)
-	// }
+	DB, err = gorm.Open(postgres.Open(source), &gorm.Config{})
+	if err != nil {
+		panic(err)
+	}
+
+	d, err := DB.DB()
+	if err != nil {
+		panic(err)
+	}
+	err = d.Ping()
+	if err != nil {
+		panic(err)
+	}
 	opts := badger.DefaultOptions("").
 		WithNumVersionsToKeep(1).
 		WithSyncWrites(true).
@@ -61,18 +72,33 @@ func InitDatabase() {
 
 	dir := ""
 
-	dir = utils.ReadConfig("db.tipset")
+	dir = etc.Config.BadgerDB.TipSet
 	TipsetKV, err = badger.Open(opts.WithDir(dir).WithValueDir(dir))
 	if err != nil {
 		panic(err)
 	}
-	dir = utils.ReadConfig("db.power")
+	dir = etc.Config.BadgerDB.Power
 	PowerKV, err = badger.Open(opts.WithDir(dir).WithValueDir(dir))
 	if err != nil {
 		panic(err)
 	}
-	dir = utils.ReadConfig("db.message")
+	dir = etc.Config.BadgerDB.Message
 	MessageKV, err = badger.Open(opts.WithDir(dir).WithValueDir(dir))
+	if err != nil {
+		panic(err)
+	}
+	dir = etc.Config.BadgerDB.TestNet
+	TestNetKV, err = badger.Open(opts.WithDir(dir).WithValueDir(dir))
+	if err != nil {
+		panic(err)
+	}
+	dir = etc.Config.BadgerDB.Wallet
+	WalletKV, err = badger.Open(opts.WithDir(dir).WithValueDir(dir))
+	if err != nil {
+		panic(err)
+	}
+	dir = etc.Config.BadgerDB.Token
+	TokenKV, err = badger.Open(opts.WithDir(dir).WithValueDir(dir))
 	if err != nil {
 		panic(err)
 	}
@@ -86,6 +112,9 @@ func InitDatabase() {
 				TipsetKV.RunValueLogGC(0.1)
 				PowerKV.RunValueLogGC(0.1)
 				MessageKV.RunValueLogGC(0.1)
+				TestNetKV.RunValueLogGC(0.1)
+				WalletKV.RunValueLogGC(0.1)
+				TokenKV.RunValueLogGC(0.1)
 			}
 		}
 	}()
@@ -97,4 +126,7 @@ func CloseDatabase() {
 	TipsetKV.Close()
 	PowerKV.Close()
 	MessageKV.Close()
+	TestNetKV.Close()
+	WalletKV.Close()
+	TokenKV.Close()
 }

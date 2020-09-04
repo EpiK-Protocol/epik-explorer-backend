@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"path/filepath"
 	"time"
 
@@ -13,9 +14,9 @@ import (
 var Log = logrus.New()
 
 //NewLfsHook ...
-func NewLfsHook(workPath string) logrus.Hook {
+func NewLfsHook(workPath string, appName string) logrus.Hook {
 
-	logName := filepath.Join(workPath, "logs", ReadConfig("app.name")+".log")
+	logName := filepath.Join(workPath, "logs", fmt.Sprintf("%s.log", appName))
 	writer, err := rotatelogs.New(
 		logName+".%Y%m%d%H",
 		// WithLinkName为最新的日志建立软连接,以方便随着找到当前日志文件

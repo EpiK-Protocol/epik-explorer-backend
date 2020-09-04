@@ -1,10 +1,9 @@
 /dump.rdb
 /lastupdate.tmp
 /nohup.out
-/com.bfss.musician
-/conf/app.conf
-/conf/app_dev.conf
-/conf/app_prod.conf
+/conf/config.yml
+/conf/config_dev.yml
+/conf/config_prod.yml
 /.idea/
 /.vscode/*.json
 /debug
@@ -16,9 +15,6 @@
 /db/
 /test.json
 /epik-explorer-backend
-/go.sum
 /log.sh
 /dev.sh
 /ops.sh
-/Dockerfile
-/filscan.http

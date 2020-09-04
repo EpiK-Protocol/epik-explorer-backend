@@ -1,9 +1,10 @@
 package api
 
 import (
-	"epik-explorer-backend/epik"
 	"fmt"
 	"time"
+
+	"github.com/EpiK-Protocol/epik-explorer-backend/epik"
 
 	"github.com/gin-gonic/gin"
 )
