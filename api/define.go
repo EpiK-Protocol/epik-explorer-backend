@@ -92,14 +92,14 @@ func timerTask() {
 					fmt.Println(err)
 				}
 			case <-timer21H.C:
-				err = GenTestnetMinerBonus()
-				if err == nil {
-					next21H = time.Date(now.Year(), now.Month(), now.Day(), 21, 5, 0, 0, now.Location())
-					timer21H.Reset(next21H.Add(24 * time.Hour).Sub(time.Now()))
-				} else {
-					fmt.Println(err)
-					timer21H.Reset(5 * time.Minute)
-				}
+				// err = GenTestnetMinerBonus()
+				// if err == nil {
+				// 	next21H = time.Date(now.Year(), now.Month(), now.Day(), 21, 5, 0, 0, now.Location())
+				// 	timer21H.Reset(next21H.Add(24 * time.Hour).Sub(time.Now()))
+				// } else {
+				// 	fmt.Println(err)
+				// 	timer21H.Reset(5 * time.Minute)
+				// }
 				// case <-timer22H.C:
 				// 	err = PushMinerERC20Bonus()
 				// 	if err == nil {

@@ -52,7 +52,6 @@ func StartUp() {
 	fmt.Println("init database engine done!")
 	//初始化业务模块
 	epik.RegisterModels(storage.DB)
-	epik.LoadData()
 	epik.StartFetch()
 	//订时任务
 	api.Start()
@@ -63,7 +62,6 @@ func StartUp() {
 		select {
 		case <-c:
 			fmt.Println("quit system")
-			epik.SaveData()
 			storage.CloseDatabase()
 			os.Exit(0)
 		}
@@ -95,6 +93,6 @@ func ginBodyLogMiddleware(c *gin.Context) {
 	c.Next()
 	// fmt.Printf("token:%s\n", c.GetHeader("token"))
 	// fmt.Printf("channel:%s\n", c.GetHeader("channel"))
-	fmt.Printf("Response body: \n%s\n", blw.body.String())
+	// fmt.Printf("Response body: \n%s\n", blw.body.String())
 
 }

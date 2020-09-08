@@ -36,6 +36,7 @@ const (
 type Miner struct {
 	ID           string      `json:"id" gorm:"primarykey"`
 	WeiXin       string      `json:"wei_xin" gorm:"unique"`
+	MinerID      string      `json:"miner_id"`
 	EpikAddress  string      `json:"epik_address"`
 	Erc20Address string      `json:"erc20_address"`
 	Status       MinerStatus `json:"status"`
@@ -61,6 +62,7 @@ func (record *ProfitRecord) Create(o *gorm.DB) (err error) {
 
 //GetProfitRecord ...
 func GetProfitRecord(o *gorm.DB, id int64) (record *ProfitRecord, err error) {
+	record = &ProfitRecord{}
 	err = o.Model(record).First(record, id).Error
 	return
 }

@@ -21,6 +21,8 @@ func SetAdminAPI(e *gin.Engine) {
 	g.GET("profit/list", adminProfitList)
 	g.POST("profit/delete", adminProfitDelete)
 	g.POST("profit/done", adminProfitDone)
+	g.POST("profit/cleanpending", adminProfitCleanPending)
+	g.POST("profit/caculate", adminProfitCaculate)
 }
 
 const passwordKey = "epik-explorer"
@@ -74,10 +76,23 @@ func adminLogin(c *gin.Context) {
 
 func adminMinerList(c *gin.Context) {
 	page := ParsePage(c)
+	status := c.Query("status")
+	weixin := c.Query("weixin")
+	id := c.Query("id")
 	o := storage.DB
 	miners := []*epik.Miner{}
 	var total int64
-	err := o.Model(epik.Miner{}).Count(&total).Limit(page.Size).Offset(page.Offset).Find(&miners).Error
+	o = o.Model(epik.Miner{})
+	if !isEmpty(status) {
+		o = o.Where("status = ?", status)
+	}
+	if !isEmpty(weixin) {
+		o = o.Where("wei_xin = ?", weixin)
+	}
+	if !isEmpty(id) {
+		o = o.Where("id = ?", id)
+	}
+	err := o.Count(&total).Limit(page.Size).Offset(page.Offset).Find(&miners).Error
 	if err != nil {
 		responseJSON(c, serverError(err))
 		return
@@ -181,6 +196,16 @@ func adminProfitDelete(c *gin.Context) {
 	responseJSON(c, errOK)
 }
 
+func adminProfitCleanPending(c *gin.Context) {
+	o := storage.DB
+	err := o.Exec("DELETE FROM profit_record WHERE status = ?", epik.MinerStatusPending).Error
+	if err != nil {
+		responseJSON(c, serverError(err))
+		return
+	}
+	responseJSON(c, errOK)
+}
+
 func adminProfitDone(c *gin.Context) {
 	req := &struct {
 		RecordID int64 `json:"record_id"`
@@ -201,4 +226,19 @@ func adminProfitDone(c *gin.Context) {
 		return
 	}
 	responseJSON(c, errOK)
+}
+
+func adminProfitCaculate(c *gin.Context) {
+	responseJSON(c, errOK)
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				fmt.Println(err)
+			}
+		}()
+		err := GenTestnetMinerBonusByPledge()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
 }

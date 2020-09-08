@@ -13,10 +13,12 @@ require (
 	github.com/filecoin-project/specs-actors v0.6.2-0.20200724193152-534b25bdca30
 	github.com/gin-gonic/gin v1.6.3
 	github.com/gofrs/uuid v3.3.0+incompatible
+	github.com/ipfs/go-cid v0.0.6
 	github.com/jackc/pgproto3/v2 v2.0.4 // indirect
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/lestrrat-go/file-rotatelogs v2.3.0+incompatible
 	github.com/lestrrat-go/strftime v1.0.3 // indirect
+	github.com/multiformats/go-multibase v0.0.3
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/shopspring/decimal v1.2.0
 	github.com/sirupsen/logrus v1.6.0

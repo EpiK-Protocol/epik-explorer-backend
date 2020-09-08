@@ -49,7 +49,7 @@ token: {{token}}
 ###
 
 #ADMIN Miner List
-GET {{HOST}}/admin/miner/list?page=1&size=10&offset=10
+GET {{HOST}}/admin/miner/list?weixin=xxx&id=xxx&status=pending&page=1&size=10&offset=10
 Content-Type: application/json
 token: {{token}}
 ###
@@ -73,7 +73,7 @@ token: {{token}}
 ###
 
 #ADMIN 收益发放列表
-GET {{HOST}}/admin/profit/list?page=1&size=10&offset=10
+GET {{HOST}}/admin/profit/list?status={pending\cinfirmed}&page=1&size=10&offset=10
 Content-Type: application/json
 token: {{token}}
 ###
@@ -94,4 +94,16 @@ token: {{token}}
 {
     "record_id":1
 }
+###
+
+#ADMIN 清除全部pending收益
+POST {{HOST}}/admin/profit/cleanpending
+Content-Type: application/json
+token: {{token}}
+###
+
+#ADMIN 开始计算当天奖励
+POST {{HOST}}/admin/profit/caculate
+Content-Type: application/json
+token: {{token}}
 ###

@@ -1,0 +1,7 @@
+@HOST=https://explorer.epik-protocol.io/api
+@token=
+
+#EPIK测试网活动报名
+GET {{HOST}}/Search?type={address\message\block}&word=
+Content-Type: application/json
+###
