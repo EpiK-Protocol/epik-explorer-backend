@@ -96,6 +96,12 @@ token: {{token}}
 }
 ###
 
+#ADMIN 完成收益发放
+POST {{HOST}}/admin/profit/alldone
+Content-Type: application/json
+token: {{token}}
+###
+
 #ADMIN 清除全部pending收益
 POST {{HOST}}/admin/profit/cleanpending
 Content-Type: application/json

@@ -14,13 +14,14 @@ import (
 func SetAdminAPI(e *gin.Engine) {
 	g := e.Group("admin", tokenConfirm)
 	e.POST("admin/login", adminLogin)
-	e.POST("admin/regist", adminRegist)
+	g.POST("regist", adminRegist)
 	g.GET("miner/list", adminMinerList)
 	g.POST("miner/confirm", adminMinerConfirm)
 	g.POST("miner/reject", adminMinerReject)
 	g.GET("profit/list", adminProfitList)
 	g.POST("profit/delete", adminProfitDelete)
 	g.POST("profit/done", adminProfitDone)
+	g.POST("profit/alldone", adminProfitAllDone)
 	g.POST("profit/cleanpending", adminProfitCleanPending)
 	g.POST("profit/caculate", adminProfitCaculate)
 }
@@ -167,7 +168,7 @@ func adminProfitList(c *gin.Context) {
 	if !isEmpty(status) {
 		o = o.Where("status = ?", status)
 	}
-	err := o.Model(epik.ProfitRecord{}).Count(&total).Limit(page.Size).Offset(page.Offset).Find(&records).Error
+	err := o.Model(epik.ProfitRecord{}).Count(&total).Order("id DESC").Limit(page.Size).Offset(page.Offset).Find(&records).Error
 	if err != nil {
 		responseJSON(c, serverError(err))
 		return
@@ -200,7 +201,7 @@ func adminProfitCleanPending(c *gin.Context) {
 	o := storage.DB
 	err := o.Exec("DELETE FROM profit_record WHERE status = ?", epik.MinerStatusPending).Error
 	if err != nil {
-		responseJSON(c, serverError(err))
+		responseJSON(c, errServerError)
 		return
 	}
 	responseJSON(c, errOK)
@@ -214,18 +215,72 @@ func adminProfitDone(c *gin.Context) {
 		responseJSON(c, clientError(err))
 		return
 	}
-	record, err := epik.GetProfitRecord(storage.DB, req.RecordID)
+	o := storage.DB.Begin()
+	record, err := epik.GetProfitRecord(o, req.RecordID)
 	if err != nil {
-		responseJSON(c, serverError(err))
+		responseJSON(c, errServerError)
+		return
+	}
+	if record.Status != epik.MinerStatusPending {
+		responseJSON(c, errClientError)
 		return
 	}
 	record.Status = epik.MinerStatusConfirmed
 	err = record.Update(storage.DB, "status")
 	if err != nil {
-		responseJSON(c, serverError(err))
+		o.Rollback()
+		responseJSON(c, errServerError)
 		return
 	}
+	miner, err := epik.GetMiner(o, record.MinerID)
+	if err != nil {
+		o.Rollback()
+		responseJSON(c, errServerError)
+		return
+	}
+	miner.Profit += record.ERC20EPK
+	err = miner.Update(o, "profit")
+	if err != nil {
+		o.Rollback()
+		responseJSON(c, errServerError)
+		return
+	}
+	o.Commit()
 	responseJSON(c, errOK)
+}
+
+func adminProfitAllDone(c *gin.Context) {
+	for {
+		o := storage.DB.Begin()
+		record := &epik.ProfitRecord{}
+		err := o.Model(record).Where("status = ?", epik.MinerStatusPending).First(record).Error
+		if err != nil {
+			o.Rollback()
+			responseJSON(c, errOK)
+			return
+		}
+		record.Status = epik.MinerStatusConfirmed
+		err = record.Update(storage.DB, "status")
+		if err != nil {
+			o.Rollback()
+			responseJSON(c, errServerError)
+			return
+		}
+		miner, err := epik.GetMiner(o, record.MinerID)
+		if err != nil {
+			o.Rollback()
+			responseJSON(c, errServerError)
+			return
+		}
+		miner.Profit += record.ERC20EPK
+		err = miner.Update(o, "profit")
+		if err != nil {
+			o.Rollback()
+			responseJSON(c, errServerError)
+			return
+		}
+		o.Commit()
+	}
 }
 
 func adminProfitCaculate(c *gin.Context) {

@@ -273,6 +273,7 @@ func StartFetch() {
 	Reconnect:
 		fmt.Println("reconnecting")
 		httpHeader := http.Header{}
+		httpHeader.Set("Content-Timeout", "100s")
 		httpHeader.Set("Authorization", fmt.Sprintf("Bearer %s", etc.Config.EPIK.RPCToken))
 		fullAPI, _, err := client.NewFullNodeRPC(etc.Config.EPIK.RPCHost, httpHeader)
 		if err != nil {

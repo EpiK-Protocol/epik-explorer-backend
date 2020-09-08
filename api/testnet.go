@@ -147,13 +147,13 @@ func testnetProfit(c *gin.Context) {
 	o := storage.DB
 	profits := []*epik.ProfitRecord{}
 	var tepk, erc20epk float64
-	err := o.Model(epik.ProfitRecord{}).Where("miner_id = ?", userID).Order("id DESC").Find(&profits).Error
+	err := o.Model(epik.ProfitRecord{}).Where("miner_id = ?  AND status= ?", userID, epik.MinerStatusConfirmed).Order("id DESC").Find(&profits).Error
 	if err != nil {
 		responseJSON(c, errServerError)
 		return
 	}
-	o.Raw("SELECT SUM(tepk) FROM profit_record WHERE miner_id = ?;", userID).Scan(&tepk)
-	o.Raw("SELECT SUM(erc20_epk) FROM profit_record WHERE miner_id = ?;", userID).Scan(&erc20epk)
+	o.Raw("SELECT SUM(tepk) FROM profit_record WHERE miner_id = ? AND status= ?;", userID, epik.MinerStatusConfirmed).Scan(&tepk)
+	o.Raw("SELECT SUM(erc20_epk) FROM profit_record WHERE miner_id = ?  AND status= ?;", userID, epik.MinerStatusConfirmed).Scan(&erc20epk)
 	responseJSON(c, errOK, "tepk", tepk, "erc20_epk", erc20epk, "list", profits)
 }
 
@@ -167,7 +167,7 @@ func RefreshTestNet(o *gorm.DB) (err error) {
 	}()
 	testnet := &epik.TestNet{}
 	testnet.TotalSupply = 2_500_000
-	o.Raw("SELECT SUM(erc20_epk) FROM profit_record;").Scan(&testnet.Issuance)
+	o.Raw("SELECT SUM(erc20_epk) FROM profit_record WHERE status = 'confirmed';").Scan(&testnet.Issuance)
 	o.Model(&epik.Miner{}).Where("status = ? AND profit > 0", epik.MinerStatusConfirmed).Order("profit DESC").Limit(100).Find(&(testnet.TopList))
 	data, _ := json.Marshal(testnet)
 	storage.TestNetKV.Update(func(txn *badger.Txn) (err error) {
@@ -444,17 +444,61 @@ func GenTestnetMinerBonusByPledge() (err error) {
 	if err != nil {
 		return
 	}
+Reconnect:
 	head, err := fullAPI.ChainHead(context.Background())
 	if err != nil {
 		return
 	}
-	miners, err := fullAPI.StateListMiners(context.Background(), head.Key())
+	allMiner, err := fullAPI.StateListMiners(context.Background(), head.Key())
 	if err != nil {
-		return
+		fmt.Println(err)
+		goto Reconnect
 	}
+	fmt.Println(allMiner)
 	o := storage.DB
+	confirmMiners := []*epik.Miner{}
+	o.Model(epik.Miner{}).Where("status = ?", epik.MinerStatusConfirmed).Find(&confirmMiners)
+	confirmMinerMap := map[string]*epik.Miner{} //全部过审
+	bindMinerMap := map[string]*epik.Miner{}    //已绑定MinerID
+	for _, miner := range confirmMiners {
+		confirmMinerMap[miner.EpikAddress] = miner
+		if miner.MinerID != "" {
+			bindMinerMap[miner.MinerID] = miner
+		}
+	}
+	// fmt.Println(confirmMinerMap)
+	fmt.Println(bindMinerMap)
+	//绑定矿工
+	for _, miner := range allMiner {
+		if bindMinerMap[miner.String()] == nil { //未绑定
+			bindCids, err := fullAPI.StateListMessages(context.Background(), &types.Message{To: miner}, head.Key(), 0)
+			if err != nil {
+				fmt.Println(err)
+				goto Reconnect
+			}
+			if len(bindCids) > 0 {
+				msg, err := fullAPI.ChainGetMessage(context.Background(), bindCids[0])
+				if err != nil {
+					fmt.Println(err)
+					goto Reconnect
+				}
+				fmt.Println("bind:", msg)
+				unbindMiner := confirmMinerMap[msg.From.String()]
+				if unbindMiner != nil { //找到可以绑定的矿工，计算有效收益
+					unbindMiner.MinerID = miner.String()
+					bindMinerMap[miner.String()] = unbindMiner
+					err = unbindMiner.Update(o, "miner_id")
+					if err != nil {
+						fmt.Println(err)
+						goto Reconnect
+					}
+				}
+			}
+		}
+	}
+	fmt.Println("miner all bind")
 	bonus := []*epik.Miner{}
-	for _, addr := range miners {
+	for _, addr := range allMiner {
 		balance, _ := fullAPI.StateMinerAvailableBalance(context.Background(), addr, head.Key())
 		miner := &epik.Miner{}
 		err := o.Model(epik.Miner{}).Where("miner_id = ?", addr.String()).First(miner).Error
