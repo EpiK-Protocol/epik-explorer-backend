@@ -8,11 +8,12 @@ import (
 
 //config ...
 type config struct {
-	Server    Server    `yaml:"server"`
-	Postgres  Postgres  `yaml:"postgres"`
-	BadgerDB  BadgerDB  `yaml:"badgerdb"`
-	EPIK      EPIK      `yaml:"epik"`
-	EPIKERC20 EPIKERC20 `yaml:"epik_erc20"`
+	Server    Server       `yaml:"server"`
+	Postgres  Postgres     `yaml:"postgres"`
+	BadgerDB  BadgerDB     `yaml:"badgerdb"`
+	EPIK      EPIK         `yaml:"epik"`
+	EPIKERC20 EPIKERC20    `yaml:"epik_erc20"`
+	Wallet    WalletConfig `yaml:"wallet"`
 }
 
 //Server ...
@@ -54,6 +55,23 @@ type BadgerDB struct {
 	TestNet string `yaml:"testnet"`
 	Wallet  string `yaml:"wallet"`
 	Token   string `yaml:"token"`
+}
+
+//WalletConfig ...
+type WalletConfig struct {
+	Android   ClientVersion `yaml:"android"`
+	IOS       ClientVersion `yaml:"ios"`
+	WalletAPI string        `yaml:"wallet_api"`
+	ETHAPI    string        `yaml:"eth_api"`
+	EPKAPI    string        `yaml:"epk_api"`
+	EPKToken  string        `yaml:"epk_token"`
+}
+
+//ClientVersion ...
+type ClientVersion struct {
+	LaestVersion    string `yaml:"laest_version"`
+	RequiredVersion string `yaml:"required_version"`
+	UpdateURL       string `yaml:"update_url"`
 }
 
 //Config ...

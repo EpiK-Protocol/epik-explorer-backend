@@ -14,7 +14,6 @@ import (
 	"github.com/EpiK-Protocol/epik-explorer-backend/etc"
 	"github.com/EpiK-Protocol/epik-explorer-backend/router"
 	"github.com/EpiK-Protocol/epik-explorer-backend/storage"
-	"github.com/EpiK-Protocol/epik-explorer-backend/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,8 +28,7 @@ func main() {
 	if gin.Mode() == "debug" {
 		r.Use(ginBodyLogMiddleware)
 	}
-	httpport := etc.Config.Server.HTTPPort
-	router.StartRouter(r, utils.ParseInt(httpport))
+	router.StartRouter(r, etc.Config.Server.HTTPPort)
 }
 
 //StartUp 启动
@@ -43,7 +41,6 @@ func StartUp() {
 	fmt.Println(etc.Config)
 	fmt.Println("init config done!")
 	fmt.Printf("set system mode to %s.\n", etc.Config.Server.Mode)
-	utils.Log.AddHook(utils.NewLfsHook(etc.Config.Server.LogDir, etc.Config.Server.Name))
 	fmt.Println("init log engine done!")
 	gin.SetMode(etc.Config.Server.Mode)
 
@@ -51,7 +48,6 @@ func StartUp() {
 	storage.InitDatabase()
 	fmt.Println("init database engine done!")
 	//初始化业务模块
-	epik.RegisterModels(storage.DB)
 	epik.StartFetch()
 	//订时任务
 	api.Start()

@@ -333,7 +333,7 @@ func SaveTipset(tipset *types.TipSet) (err error) {
 		if err != nil {
 			return
 		}
-		key := []byte(fmt.Sprintf("TS:%x", math.MaxInt64-tipset.Height()))
+		key := []byte(fmt.Sprintf("TS:%x", math.MaxUint32-tipset.Height()))
 		return txn.Set(key, data)
 	})
 }
@@ -348,17 +348,12 @@ type RMessage struct {
 //SaveMessage ...
 func SaveMessage(messages []*types.Message, tipset *types.TipSet) (err error) {
 	return storage.MessageKV.Update(func(txn *badger.Txn) (err error) {
-		for i, message := range messages {
-			rmsg := &RMessage{
-				Height:  int64(tipset.Height()),
-				Time:    time.Unix(int64(tipset.MinTimestamp()), 0),
-				Message: message,
-			}
-			data, err := json.Marshal(rmsg)
+		for _, message := range messages {
+			data, err := json.Marshal(message)
 			if err != nil {
 				return err
 			}
-			key := []byte(fmt.Sprintf("MS:%x", math.MaxInt64-(int(rmsg.Height)*1000+i)))
+			key := []byte(fmt.Sprintf("MS:%s", message.Cid().String()))
 			err = txn.Set(key, data)
 			if err != nil {
 				return err

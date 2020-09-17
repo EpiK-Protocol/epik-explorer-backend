@@ -196,15 +196,19 @@ func epikSearch(c *gin.Context) {
 			responseJSON(c, clientError(fmt.Errorf("address invalid")))
 			return
 		}
-		from, err := fullAPI.StateListMessages(context.Background(), &types.Message{From: addr}, head.Key(), head.Height()-1000)
-		to, err := fullAPI.StateListMessages(context.Background(), &types.Message{To: addr}, head.Key(), head.Height()-1000)
-		cids := append(from, to...)
-		if err != nil {
-			return
-		}
+		from, err := fullAPI.StateListMessages(context.Background(), &types.Message{From: addr}, head.Key(), 0)
 		if err != nil {
 			responseJSON(c, errServerError)
 			return
+		}
+		to, err := fullAPI.StateListMessages(context.Background(), &types.Message{To: addr}, head.Key(), 0)
+		if err != nil {
+			responseJSON(c, errServerError)
+			return
+		}
+		cids := append(from, to...)
+		if len(cids) > 50 {
+			cids = cids[:50]
 		}
 		type resultMessage struct {
 			types.Message

@@ -1,3 +1,0 @@
-[submodule "extern/go-ethereum"]
-	path = extern/go-ethereum
-	url = git@github.com:ethereum/go-ethereum.git

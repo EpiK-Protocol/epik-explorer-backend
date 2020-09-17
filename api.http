@@ -29,6 +29,11 @@ GET {{HOST}}/wallet/price
 Content-Type: application/json
 ###
 
+#EPIK钱包config
+GET {{HOST}}/wallet/config
+Content-Type: application/json
+###
+
 #ADMIN Login
 POST {{HOST}}/admin/login
 Content-Type: application/json
@@ -100,6 +105,9 @@ token: {{token}}
 POST {{HOST}}/admin/profit/alldone
 Content-Type: application/json
 token: {{token}}
+{
+    "fee":0.0
+}
 ###
 
 #ADMIN 清除全部pending收益
@@ -110,6 +118,12 @@ token: {{token}}
 
 #ADMIN 开始计算当天奖励
 POST {{HOST}}/admin/profit/caculate
+Content-Type: application/json
+token: {{token}}
+###
+
+#ADMIN 导出pending记录
+GET {{HOST}}/admin/profit/export
 Content-Type: application/json
 token: {{token}}
 ###

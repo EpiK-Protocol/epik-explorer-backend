@@ -24,3 +24,17 @@ epik_erc20:
     main_privatekey: 
     daily_bonus: 50000
 
+
+wallet:
+    android:
+        latest_version: 1.0.0
+        required_version: 1.0.0
+        update_url: https://www.epik-protocol.io/wallet
+    ios:
+        latest_version: 1.0.0
+        required_version: 1.0.0
+        update_url: https://www.epik-protocol.io/wallet
+    wallet_api: https://explorer.epik-protocol.io/api/
+    eth_api: 
+    epk_api: 
+    epk_token: 
