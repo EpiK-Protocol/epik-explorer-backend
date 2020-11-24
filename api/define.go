@@ -13,6 +13,7 @@ import (
 	"github.com/EpiK-Protocol/go-epik/chain/types"
 	epikwallet "github.com/EpiK-Protocol/go-epik/chain/wallet"
 	"github.com/filecoin-project/go-address"
+	"github.com/filecoin-project/specs-actors/actors/abi/big"
 	"github.com/gin-gonic/gin"
 )
 
@@ -106,3 +107,5 @@ func SendEPK(w *epikwallet.Wallet, to string, amount string) (cidStr string, err
 	}
 	return c.String(), nil
 }
+
+var BigInt18 = big.Mul(big.NewInt(1_000_000_000), big.NewInt(1_000_000_000))

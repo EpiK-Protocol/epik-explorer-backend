@@ -48,7 +48,9 @@ func StartUp() {
 	storage.InitDatabase()
 	fmt.Println("init database engine done!")
 	//初始化业务模块
-	epik.StartFetch()
+	go epik.StartFetch()
+	go epik.StartUpdateByTime()
+	go epik.FetchHistory()
 	//订时任务
 	api.Start()
 	fmt.Println("init pay model done!")

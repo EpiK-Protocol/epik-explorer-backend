@@ -2,16 +2,20 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/EpiK-Protocol/epik-explorer-backend/epik"
 	"github.com/EpiK-Protocol/epik-explorer-backend/etc"
+	"github.com/EpiK-Protocol/epik-explorer-backend/storage"
 	"github.com/EpiK-Protocol/go-epik/api/client"
 	"github.com/EpiK-Protocol/go-epik/chain/types"
+	"github.com/dgraph-io/badger/v2"
 	"github.com/filecoin-project/go-address"
 	"github.com/ipfs/go-cid"
+	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,6 +31,8 @@ func SetEpikExplorerAPI(e *gin.Engine) {
 	e.POST("TotalPowerGraphical", totalPowerGraphical)
 	e.POST("AvgBlockheaderSizeGraphical", avgBlockheaderSizeGraphical)
 	e.GET("Search", epikSearch)
+	e.GET("MinerInfo", minerInfo)
+	e.GET("MinerStatus", minerStatus)
 }
 
 func peerMap(c *gin.Context) {
@@ -75,13 +81,13 @@ func latestBlock(c *gin.Context) {
 	parseRequestBody(c, req)
 	list := epik.GetLatestBlocks(req.Num, false)
 	type blockResult struct {
-		types.BlockHeader
+		epik.EBlockHeader
 		Cid string
 	}
 	resultList := []*blockResult{}
 	for _, block := range list {
 		result := &blockResult{}
-		result.BlockHeader = *block
+		result.EBlockHeader = *block
 		result.Cid = block.Cid().String()
 		resultList = append(resultList, result)
 	}
@@ -93,7 +99,7 @@ func latestMessage(c *gin.Context) {
 		Num int `json:"num"`
 	}{}
 	parseRequestBody(c, req)
-	list := epik.GetLatestMessages(req.Num)
+	list, _ := epik.GetLatestMessage()
 	type msgResult struct {
 		types.Message
 		Cid string
@@ -181,70 +187,32 @@ func epikSearch(c *gin.Context) {
 
 	switch _type {
 	case "address":
-		fullAPI, _, err := client.NewFullNodeRPC(etc.Config.EPIK.RPCHost, httpHeader)
-		if err != nil {
-			responseJSON(c, errServerError)
-			return
-		}
-		head, err := fullAPI.ChainHead(context.Background())
-		if err != nil {
-			responseJSON(c, errServerError)
-			return
-		}
-		addr, err := address.NewFromString(word)
-		if err != nil {
-			responseJSON(c, clientError(fmt.Errorf("address invalid")))
-			return
-		}
-		from, err := fullAPI.StateListMessages(context.Background(), &types.Message{From: addr}, head.Key(), 0)
-		if err != nil {
-			responseJSON(c, errServerError)
-			return
-		}
-		to, err := fullAPI.StateListMessages(context.Background(), &types.Message{To: addr}, head.Key(), 0)
-		if err != nil {
-			responseJSON(c, errServerError)
-			return
-		}
-		cids := append(from, to...)
-		if len(cids) > 50 {
-			cids = cids[:50]
-		}
+
 		type resultMessage struct {
 			types.Message
 			Cid string
 		}
 		msgs := []*resultMessage{}
-		for _, cid := range cids {
-			msg, err := fullAPI.ChainGetMessage(context.Background(), cid)
-			if err != nil {
-				responseJSON(c, errServerError)
-				return
-			}
+		messages, err := epik.ReadAddrMessage(word, time.Now(), 100)
+		if err != nil {
+			responseJSON(c, errServerError)
+			return
+		}
+		for _, message := range messages {
 			resultMsg := &resultMessage{}
-			resultMsg.Message = *msg
-			resultMsg.Cid = msg.Cid().String()
+			resultMsg.Message = *message.Message
+			resultMsg.Cid = message.Message.Cid().String()
 			msgs = append(msgs, resultMsg)
 		}
 		responseJSON(c, errOK, "list", msgs)
 		return
 	case "message":
-		fullAPI, _, err := client.NewFullNodeRPC(etc.Config.EPIK.RPCHost, httpHeader)
+		msg, err := epik.GetMessage(word)
 		if err != nil {
 			responseJSON(c, errServerError)
 			return
 		}
-		cid, err := cid.Decode(word)
-		if err != nil {
-			responseJSON(c, errClientError)
-			return
-		}
-		message, err := fullAPI.ChainGetMessage(context.Background(), cid)
-		if err != nil {
-			responseJSON(c, errServerError)
-			return
-		}
-		responseJSON(c, errOK, "message", message)
+		responseJSON(c, errOK, "message", msg.Message)
 		return
 	case "block":
 		fullAPI, _, err := client.NewFullNodeRPC(etc.Config.EPIK.RPCHost, httpHeader)
@@ -265,4 +233,72 @@ func epikSearch(c *gin.Context) {
 		responseJSON(c, errOK, "block", block)
 		return
 	}
+}
+
+func minerInfo(c *gin.Context) {
+	id := c.Query("miner")
+	httpHeader := http.Header{}
+	httpHeader.Set("Authorization", fmt.Sprintf("Bearer %s", etc.Config.EPIK.RPCToken))
+	fullAPI, _, err := client.NewFullNodeRPC(etc.Config.EPIK.RPCHost, httpHeader)
+	if err != nil {
+		responseJSON(c, serverError(err))
+		return
+	}
+	addr, err := address.NewFromString(id)
+	if err != nil {
+		responseJSON(c, errClientError)
+		return
+	}
+	miner, err := fullAPI.StateMinerInfo(context.Background(), addr, types.EmptyTSK)
+	if err != nil {
+		responseJSON(c, serverError(err))
+		return
+	}
+	balance, err := fullAPI.StateMinerAvailableBalance(context.Background(), addr, types.EmptyTSK)
+	if err != nil {
+		responseJSON(c, serverError(err))
+		return
+	}
+	bal, _ := decimal.NewFromString(balance.String())
+	dec18, _ := decimal.NewFromString("1000000000000000000")
+	bal = bal.Div(dec18)
+	power, err := fullAPI.StateMinerPower(context.Background(), addr, types.EmptyTSK)
+	if err != nil {
+		responseJSON(c, serverError(err))
+		return
+	}
+
+	responseJSON(c, errOK, "miner_id", addr.String(), "sector_size", miner.SectorSize, "peer_id", miner.PeerId, "balance", bal.String(), "miner_power", power.MinerPower, "total_power", power.TotalPower)
+}
+
+func minerStatus(c *gin.Context) {
+	type minerStatus struct {
+		Total   int64
+		Pledged int64
+		Won     int64
+	}
+	statuses := []*minerStatus{}
+	storage.PowerKV.View(func(txn *badger.Txn) (err error) {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		prefix := []byte(fmt.Sprintf("MINERSTATUS:"))
+		valid := prefix
+		for it.Seek(prefix); it.ValidForPrefix(valid); it.Next() {
+			data, err := it.Item().ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			status := &minerStatus{}
+			err = json.Unmarshal(data, status)
+			if err == nil {
+				statuses = append([]*minerStatus{status}, statuses...)
+			}
+			if len(statuses) > 100 {
+				break
+			}
+		}
+		return
+	})
+
+	responseJSON(c, errOK, "list", statuses)
 }
